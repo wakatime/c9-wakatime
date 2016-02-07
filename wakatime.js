@@ -15,6 +15,10 @@ define(function(require, exports, module) {
         var save = imports.save;
         var fs = imports.fs;
         var proc = imports.proc;
+        
+        //var AdmZip = require('adm-zip');
+        //var request = require('request');
+        //var rimraf = require('rimraf');
 
         /***** Initialization *****/
 
@@ -36,6 +40,22 @@ define(function(require, exports, module) {
                 apiKey = promptForApiKey();
                 settings.set("user/wakatime/@apikey", apiKey);
             }
+            
+            isCoreInstalled(function(installed) {
+                if (!installed) {
+                    installCore(function() {
+                    console.log('Finished installing wakatime core.');
+                  });
+                } else {
+                    isCoreLatest(function(latest) {
+                        if (!latest) {
+                            installCore(function() {
+                                console.log('Finished installing wakatime core.');
+                            });
+                        }
+                    });
+                }
+            });
 
             setupSettings();
             setupEventHandlers();
@@ -105,10 +125,6 @@ define(function(require, exports, module) {
             }, plugin);
         }
 
-        function downloadCLI() {
-            // TODO: download and unzip https://github.com/wakatime/wakatime/archive/master.zip
-        }
-
         function getCursorPosition(file, isWrite, row, col, callback) {
             if (file) {
               fs.readFile(file, function (err, data) {
@@ -124,7 +140,7 @@ define(function(require, exports, module) {
                           cursorpos += lines[i].length + 1;
                       }
                   }
-                  callback(file, cursorpos, isWrite)
+                  callback(file, cursorpos, isWrite);
               });
             }
         }
@@ -225,9 +241,131 @@ define(function(require, exports, module) {
             });
 
         }
-
-        function cliLocation() {
+        
+        function coreLocation() {
             return 'wakatime-master/wakatime/cli.py';
+        }
+    
+        function isCoreInstalled(callback) {
+            fs.exists(coreLocation(), callback);
+        }
+    
+        function isCoreLatest(callback) {
+            pythonLocation(function(pythonBinary) {
+                if (pythonBinary) {
+        
+                    var args = [coreLocation(), '--version'];
+                    proc.execFile(pythonBinary, {args:args}, function(error, stdout, stderr) {
+                        if (error == null) {
+                            var currentVersion = stderr.toString().trim();
+                            console.log('Current wakatime-core version is ' + currentVersion);
+        
+                            console.log('Checking for updates to wakatime-core...');
+                            latestCoreVersion(function(latestVersion) {
+                                if (currentVersion === latestVersion) {
+                                    console.log('wakatime-core is up to date.');
+                                    if (callback)
+                                        callback(true);
+                                } else if (latestVersion) {
+                                    console.log('Found an updated wakatime-core v' + latestVersion);
+                                    if (callback)
+                                        callback(false);
+                                } else {
+                                    console.log('Unable to find latest wakatime-core version from GitHub.');
+                                    if (callback)
+                                        callback(false);
+                                }
+                            });
+                        } else {
+                            if (callback)
+                                callback(false);
+                        }
+                    });
+                } else {
+                    if (callback)
+                        callback(false);
+                }
+            });
+        }
+    
+        function latestCoreVersion(callback) {
+            var url = 'https://raw.githubusercontent.com/wakatime/wakatime/master/wakatime/__about__.py';
+            request.get(url, function(error, response, body) {
+                var version = null;
+                if (!error && response.statusCode == 200) {
+                    var lines = body.split('\n');
+                    for (var i = 0; i < lines.length; i++) {
+                        var re = /^__version_info__ = \('([0-9]+)', '([0-9]+)', '([0-9]+)'\)/g;
+                        var match = re.exec(lines[i]);
+                        if (match != null) {
+                            version = match[1] + '.' + match[2] + '.' + match[3];
+                            if (callback)
+                              return callback(version);
+                        }
+                    }
+                }
+                if (callback)
+                    return callback(version);
+            });
+        }
+    
+        function installCore(callback) {
+            console.log('Downloading wakatime-core...');
+            var url = 'https://github.com/wakatime/wakatime/archive/master.zip';
+            var zipFile =  './wakatime-master.zip';
+    
+            downloadFile(url, zipFile, function() {
+                extractCore(zipFile);
+                callback();
+            });
+        }
+    
+        function extractCore(zipFile) {
+            console.log('Extracting wakatime-core...');
+            removeCore();
+            unzip(zipFile, './', function() {
+                console.log('Finished extracting wakatime-core.');
+            });
+        }
+    
+        function removeCore() {
+            if (fs.existsSync('./wakatime-master')) {
+                try {
+                    rimraf('./wakatime-master');
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        }
+    
+        function downloadFile(url, outputFile, callback) {
+            var r = request(url);
+            var out = fs.createWriteStream(outputFile);
+            r.pipe(out);
+            return r.on('end', function() {
+                return out.on('finish', function() {
+                    if (callback != null) {
+                        return callback();
+                    }
+                });
+            });
+        }
+    
+        function unzip(file, outputDir, callback) {
+            fs.exists(file, function(exists) {
+                if (exists) {
+                    try {
+                        var zip = new AdmZip(file);
+                        zip.extractAllTo(outputDir, true);
+                    } catch (e) {
+                        return console.error(e);
+                    } finally {
+                        fs.unlink(file);
+                    }
+                }
+                if (callback)
+                    callback();
+            });
         }
 
         function handleActivity(file, cursorpos, isWrite) {
@@ -247,7 +385,7 @@ define(function(require, exports, module) {
                     return;
                 var apiKey = settings.get("user/wakatime/@apikey");
                 var userAgent = 'c9/' + c9Version + ' c9-wakatime/' + options.version;
-                var args = [cliLocation(), '--file', file, '--key', apiKey, '--plugin', userAgent];
+                var args = [coreLocation(), '--file', file, '--key', apiKey, '--plugin', userAgent];
                 if (isWrite)
                     args.push('--write');
                 if (cursorpos) {

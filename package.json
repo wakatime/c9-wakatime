@@ -17,5 +17,10 @@
     "wakatime": {}
   },
   "categories": ["miscellaneous"],
-  "licenses": ["BSD"]
+  "licenses": ["BSD"],
+  "dependencies": {
+    "adm-zip": "0.4.7",
+    "request": "2.69.0",
+    "rimraf": "2.5.1"
+  }
 }
