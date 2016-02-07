@@ -1,0 +1,21 @@
+{
+  "name": "c9-wakatime",
+  "description": "Metrics, insights, and time tracking automatically generated from your programming activity.",
+  "version": "0.0.1",
+  "author": "",
+  "contributors": [
+    {
+      "name": "",
+      "email": ""
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "plugins": {
+    "wakatime": {}
+  },
+  "categories": ["miscellaneous"],
+  "licenses": ["BSD"]
+}
