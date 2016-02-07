@@ -7,7 +7,7 @@ define(function(require, exports, module) {
 
     function main(options, imports, register) {
         var Plugin = imports.Plugin;
-        // var c9 = imports.c9;
+        var c9 = imports.c9;
         var settings = imports.settings;
         var prefs = imports.preferences;
         var tabManager = imports.tabManager;
@@ -22,13 +22,14 @@ define(function(require, exports, module) {
         // var emit = plugin.getEmitter();
         // emit.setMaxListeners(2);
 
+        var c9Version = null;
         var lastFile = null;
         var lastTime = 0;
         var cachedPythonLocation = null;
 
         function init() {
-            // c9.version is "3.1.473 (2a94be92564e79ed35f786be7ff5c8d6dc885cb0)"
             console.log("Initializing WakaTime v" + options.version);
+            c9Version = c9.version.split(' ')[0];
 
             var apiKey = settings.get("user/wakatime/@apikey");
             if (!isValidApiKey(apiKey)) {
@@ -147,11 +148,11 @@ define(function(require, exports, module) {
             }
             return ignore;
         }
-        
+
         function pythonLocation(callback, locations) {
             if (cachedPythonLocation)
                 return callback(cachedPythonLocation);
-            
+
             if (locations === undefined) {
                 locations = [
                     "pythonw",
@@ -204,15 +205,15 @@ define(function(require, exports, module) {
                     "\\Python26\\python",
                 ];
             }
-            
+
             if (locations.length == 0) {
               callback(null);
               return;
             }
-        
+
             var args = ['--version'];
             var location = locations[0];
-            
+
             proc.execFile(location, {args:args}, function(error, stdout, stderr) {
               if (!error) {
                 cachedPythonLocation = location;
@@ -222,9 +223,9 @@ define(function(require, exports, module) {
                 pythonLocation(callback, locations);
               }
             });
-    
+
         }
-        
+
         function cliLocation() {
             return 'wakatime-master/wakatime/cli.py';
         }
@@ -245,7 +246,8 @@ define(function(require, exports, module) {
                 if (!python)
                     return;
                 var apiKey = settings.get("user/wakatime/@apikey");
-                var args = [cliLocation(), '--file', file, '--key', apiKey, '--plugin', 'c9-wakatime/' + options.version]
+                var userAgent = 'c9/' + c9Version + ' c9-wakatime/' + options.version;
+                var args = [cliLocation(), '--file', file, '--key', apiKey, '--plugin', userAgent];
                 if (isWrite)
                     args.push('--write');
                 if (cursorpos) {
