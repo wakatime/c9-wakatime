@@ -17,10 +17,10 @@
     "wakatime": {}
   },
   "categories": ["miscellaneous"],
-  "licenses": ["BSD"],
-  "dependencies": {
-    "adm-zip": "0.4.7",
-    "request": "2.69.0",
-    "rimraf": "2.5.1"
-  }
+  "license": "BSD-3-Clause",
+  "licenses": [{
+    "type": "BSD",
+    "url": "https://github.com/wakatime/c9-wakatime/blob/master/LICENSE"
+  }],
+  "installer": "install.js"
 }
