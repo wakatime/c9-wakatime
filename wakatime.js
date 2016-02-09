@@ -30,11 +30,6 @@ define(function(require, exports, module) {
         function init() {
             console.log("Initializing WakaTime v" + options.version);
             c9Version = c9.version.split(' ')[0];
-            
-            fs.exists(coreLocation(), function(exists) {
-                console.log(coreLocation());
-                console.log(exists);
-            });
 
             var apiKey = settings.get("user/wakatime/@apikey");
             if (!isValidApiKey(apiKey)) {
@@ -240,8 +235,8 @@ define(function(require, exports, module) {
 
         }
         
-        function coreLocation() {
-            return "~/.c9/lib/wakatime-core/wakatime-master/wakatime/cli.py";
+        function coreRelativeLocation() {
+            return ".c9/lib/wakatime-core/wakatime-master/wakatime/cli.py";
         }
         
         function obfuscateKey(key) {
@@ -270,6 +265,9 @@ define(function(require, exports, module) {
         function handleActivity(file, cursorpos, isWrite) {
             if (!file)
                 return;
+            if (file.indexOf('~') == 0) {
+                file = c9.home + file.substring(1);
+            }
             var time = Date.now();
             if (isWrite || enoughTimePassed(time) || lastFile != file) {
                 if (fileIsIgnored(file))
@@ -285,7 +283,8 @@ define(function(require, exports, module) {
                 var debug = settings.get("user/wakatime/@debug");
                 var apiKey = settings.get("user/wakatime/@apikey");
                 var userAgent = 'c9/' + c9Version + ' c9-wakatime/' + options.version;
-                var args = [coreLocation(), '--file', file, '--key', apiKey, '--plugin', userAgent];
+                var core = c9.home + '/' + coreRelativeLocation();
+                var args = [core, '--file', file, '--key', apiKey, '--plugin', userAgent];
                 if (isWrite)
                     args.push('--write');
                 if (debug)
