@@ -14,9 +14,7 @@
     "url": "http://github.com/wakatime/c9-wakatime.git"
   },
   "plugins": {
-    "wakatime": {
-      "packagePath": "plugins/wakatime/wakatime"
-    }
+    "wakatime": {}
   },
   "engines": {
     "c9": ">=3.0.0"
