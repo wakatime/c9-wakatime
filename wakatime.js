@@ -22,15 +22,17 @@ define(function(require, exports, module) {
         // var emit = plugin.getEmitter();
         // emit.setMaxListeners(2);
 
+        var pluginVersion = null;
         var c9Version = null;
         var lastFile = null;
         var lastTime = 0;
         var cachedPythonLocation = null;
 
         function init() {
-            if (settings.get("user/wakatime/@debug"))
-                console.log("Initializing WakaTime v" + options.version);
+            pluginVersion = options.version || '1.0.2';
             c9Version = c9.version.split(' ')[0];
+            if (settings.get("user/wakatime/@debug"))
+                console.log("Initializing WakaTime v" + pluginVersion);
 
             var apiKey = settings.get("user/wakatime/@apikey");
             if (!isValidApiKey(apiKey)) {
@@ -197,11 +199,11 @@ define(function(require, exports, module) {
             });
 
         }
-        
+
         function coreRelativeLocation() {
             return ".c9/lib/wakatime-core/wakatime-master/wakatime/cli.py";
         }
-        
+
         function obfuscateKey(key) {
             var newKey = "";
             if (key) {
@@ -211,7 +213,7 @@ define(function(require, exports, module) {
             }
             return newKey;
         }
-    
+
         function obfuscateKeyFromArguments(args) {
             var newCmds = [];
             var lastCmd = "";
@@ -224,7 +226,7 @@ define(function(require, exports, module) {
             }
             return newCmds;
         }
-        
+
         function handleActivity(file, cursorpos, isWrite) {
             if (!file)
                 return;
@@ -245,7 +247,7 @@ define(function(require, exports, module) {
                     return;
                 var debug = settings.get("user/wakatime/@debug");
                 var apiKey = settings.get("user/wakatime/@apikey");
-                var userAgent = 'c9/' + c9Version + ' c9-wakatime/' + options.version;
+                var userAgent = 'c9/' + c9Version + ' c9-wakatime/' + pluginVersion;
                 var core = c9.home + '/' + coreRelativeLocation();
                 var args = [core, '--file', file, '--key', apiKey, '--plugin', userAgent];
                 if (isWrite)
