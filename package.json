@@ -2,20 +2,21 @@
   "name": "c9-wakatime",
   "description": "Metrics, insights, and time tracking automatically generated from your programming activity.",
   "version": "0.0.1",
-  "author": "",
+  "author": "WakaTime",
   "contributors": [
     {
-      "name": "",
-      "email": ""
+      "name": "Alan Hamlett",
+      "email": "alan@wakatime.com"
     }
   ],
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "http://github.com/wakatime/c9-wakatime.git"
   },
   "plugins": {
     "wakatime": {}
   },
+  "engines": {"c9": ">=3.0.0"},
   "categories": ["miscellaneous"],
   "license": "BSD-3-Clause",
   "licenses": [{
