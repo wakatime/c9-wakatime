@@ -1,0 +1,6 @@
+npm-debug.log
+.DS_Store
+.git
+node_modules
+.c9
+__installed__.js
