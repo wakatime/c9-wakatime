@@ -28,7 +28,8 @@ define(function(require, exports, module) {
         var cachedPythonLocation = null;
 
         function init() {
-            console.log("Initializing WakaTime v" + options.version);
+            if (settings.get("user/wakatime/@debug"))
+                console.log("Initializing WakaTime v" + options.version);
             c9Version = c9.version.split(' ')[0];
 
             var apiKey = settings.get("user/wakatime/@apikey");
@@ -113,22 +114,24 @@ define(function(require, exports, module) {
 
         function getCursorPosition(file, isWrite, row, col, callback) {
             if (file) {
-              fs.readFile(file, function (err, data) {
-                  var cursorpos = null;
-                  if (!err) {
-                      cursorpos = 0;
-                      var lines = data.split(/\n/);
-                      for (var i=0; i<lines.length; i++) {
-                          if (i == row) {
-                              cursorpos += col;
-                              break;
-                          }
-                          cursorpos += lines[i].length + 1;
-                      }
-                  }
-                  if (callback)
-                    callback(file, cursorpos, isWrite);
-              });
+                var re = new RegExp('^' + c9.home);
+                var relativeFile = file.replace(re, '~');
+                fs.readFile(relativeFile, function (err, data) {
+                    var cursorpos = null;
+                    if (!err) {
+                        cursorpos = 0;
+                        var lines = data.split(/\n/);
+                        for (var i=0; i<lines.length; i++) {
+                            if (i == row) {
+                                cursorpos += col;
+                                break;
+                            }
+                            cursorpos += lines[i].length + 1;
+                        }
+                    }
+                    if (callback)
+                      callback(file, cursorpos, isWrite);
+                });
             }
         }
 
@@ -166,51 +169,11 @@ define(function(require, exports, module) {
                     "python",
                     "/usr/local/bin/python",
                     "/usr/bin/python",
-                    "\\python38\\pythonw",
-                    "\\Python38\\pythonw",
-                    "\\python37\\pythonw",
-                    "\\Python37\\pythonw",
-                    "\\python36\\pythonw",
-                    "\\Python36\\pythonw",
-                    "\\python35\\pythonw",
-                    "\\Python35\\pythonw",
-                    "\\python34\\pythonw",
-                    "\\Python34\\pythonw",
-                    "\\python33\\pythonw",
-                    "\\Python33\\pythonw",
-                    "\\python32\\pythonw",
-                    "\\Python32\\pythonw",
-                    "\\python31\\pythonw",
-                    "\\Python31\\pythonw",
-                    "\\python30\\pythonw",
-                    "\\Python30\\pythonw",
-                    "\\python27\\pythonw",
-                    "\\Python27\\pythonw",
-                    "\\python26\\pythonw",
-                    "\\Python26\\pythonw",
-                    "\\python38\\python",
-                    "\\Python38\\python",
-                    "\\python37\\python",
-                    "\\Python37\\python",
-                    "\\python36\\python",
-                    "\\Python36\\python",
-                    "\\python35\\python",
-                    "\\Python35\\python",
-                    "\\python34\\python",
-                    "\\Python34\\python",
-                    "\\python33\\python",
-                    "\\Python33\\python",
-                    "\\python32\\python",
-                    "\\Python32\\python",
-                    "\\python31\\python",
-                    "\\Python31\\python",
-                    "\\python30\\python",
-                    "\\Python30\\python",
-                    "\\python27\\python",
-                    "\\Python27\\python",
-                    "\\python26\\python",
-                    "\\Python26\\python",
                 ];
+                for (var i=26; i<40; i++) {
+                    locations.push('\\python' + i + '\\pythonw');
+                    locations.push('\\Python' + i + '\\pythonw');
+                }
             }
 
             if (locations.length == 0) {
@@ -296,7 +259,7 @@ define(function(require, exports, module) {
                 if (debug) {
                     var clone = args.slice(0);
                     clone.unshift(python);
-                    console.log(obfuscateKeyFromArguments(clone));
+                    console.log('Sending heartbeat to wakatime-core: ' + obfuscateKeyFromArguments(clone).join(' '));
                 }
                 proc.execFile(python, {args:args}, function(error, stdout, stderr) {
                     if (error) {
