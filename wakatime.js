@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "Plugin", "c9", "tabManager", "preferences", "settings", "save", "ace", "fs", "proc"
+        "Plugin", "c9", "tabManager", "preferences", "settings", "save", "ace", "fs", "proc", "info", "http"
     ];
     main.provides = ["wakatime"];
     return main;
@@ -15,6 +15,8 @@ define(function(require, exports, module) {
         var save = imports.save;
         var fs = imports.fs;
         var proc = imports.proc;
+        var info = imports.info;
+        var http = imports.http;
 
         /***** Initialization *****/
 
@@ -34,20 +36,67 @@ define(function(require, exports, module) {
             if (settings.get("user/wakatime/@debug"))
                 console.log("Initializing WakaTime v" + pluginVersion);
 
-            var apiKey = settings.get("user/wakatime/@apikey");
+            setupSettings();
+
+            // get user's c9 email address
+            info.getUser(function(err, user) {
+                if (err || !user || !user.email) {
+                    console.log(err);
+                    finishInit();
+                } else {
+                    var apiKey = getApiKey();
+                    if (isValidApiKey(apiKey)) {
+                        finishInit();
+                    } else {
+                        createWakaUser(user, finishInit);
+                    }
+                }
+            });
+        }
+
+        function finishInit() {
+
+            // make sure we have a WakaTime api key
+            var apiKey = getApiKey();
             if (!isValidApiKey(apiKey)) {
                 apiKey = promptForApiKey();
-                settings.set("user/wakatime/@apikey", apiKey);
+                if (isValidApiKey(apiKey))
+                    setApiKey(apiKey);
             }
 
-            setupSettings();
             setupEventHandlers();
         }
 
         /***** Methods *****/
 
+        function createWakaUser(user, callback) {
+            //var url = 'https://wakatime.com/api/v1/users/signup/c9'
+            var url = 'http://localhost:5000/api/v1/users/signup/c9'
+            var query = {
+                email: user.email,
+            };
+            if (user.fullname) query.full_name = user.fullname;
+            var options = {
+                query: query,
+            };
+            http.jsonP(url, options, function(jdata) {
+                if (jdata.data && isValidApiKey(jdata.data.api_key))
+                    setApiKey(jdata.data.api_key);
+                callback && callback();
+            });
+        }
+
+        function setApiKey(apiKey) {
+            if (isValidApiKey(apiKey))
+                settings.set("user/wakatime/@apikey", apiKey);
+        }
+
+        function getApiKey() {
+            return settings.get("user/wakatime/@apikey");
+        }
+
         function promptForApiKey() {
-            var key = window.prompt("[WakaTime] Enter your wakatime.com api key:", settings.get("user/wakatime/@apikey"));
+            var key = window.prompt("[WakaTime] Enter your wakatime.com api key:", getApiKey());
             return key;
         }
 
@@ -246,7 +295,7 @@ define(function(require, exports, module) {
                 if (!python)
                     return;
                 var debug = settings.get("user/wakatime/@debug");
-                var apiKey = settings.get("user/wakatime/@apikey");
+                var apiKey = getApiKey();
                 var userAgent = 'c9/' + c9Version + ' c9-wakatime/' + pluginVersion;
                 var core = c9.home + '/' + coreRelativeLocation();
                 var args = [core, '--file', file, '--key', apiKey, '--plugin', userAgent];
