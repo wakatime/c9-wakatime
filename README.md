@@ -4,6 +4,12 @@ c9-wakatime
 Metrics, insights, and time tracking automatically generated from your programming activity.
 
 
+Installation
+------------
+
+Setup the [c9sdk](https://cloud9-sdk.readme.io/docs/running-the-sdk) then run `./bin/c9 install wakatime`.
+
+
 Screen Shots
 ------------
 
