@@ -7,7 +7,7 @@ Metrics, insights, and time tracking automatically generated from your programmi
 Installation
 ------------
 
-Setup the [c9sdk](https://cloud9-sdk.readme.io/docs/running-the-sdk) then run `./bin/c9 install wakatime`.
+Setup the [c9sdk](https://cloud9-sdk.readme.io/docs/running-the-sdk) then run `./bin/c9 install wakatime`
 
 
 Screen Shots
