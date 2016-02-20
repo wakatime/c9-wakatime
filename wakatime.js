@@ -77,16 +77,19 @@ define(function(require, exports, module) {
 
         function createWakaUser(user, callback) {
             var url = 'https://wakatime.com/api/v1/users/signup/c9'
-            var query = {
+            var body = {
                 email: user.email,
             };
-            if (user.fullname) query.full_name = user.fullname;
+            if (user.fullname) body.full_name = user.fullname;
             var options = {
-                query: query,
+                method: 'POST',
+                body: body,
+                timeout: 30000,
             };
-            http.jsonP(url, options, function(jdata) {
-                if (jdata.data && isValidApiKey(jdata.data.api_ey))
-                    setApiKey(jdata.data.api_key);
+            http.request(url, options, function(err, data, res) {
+                if (err) console.log(err);
+                if (data && data.data && isValidApiKey(data.data.api_key))
+                    setApiKey(data.data.api_key);
                 callback && callback();
             });
         }
@@ -96,7 +99,7 @@ define(function(require, exports, module) {
                 cachedApiKey = apiKey;
 
                 var data = {
-                  apiKey: apiKey,
+                    apiKey: apiKey,
                 };
                 api.setPersistentData("user", data, function(err) {
                     if (err) console.log(err);
