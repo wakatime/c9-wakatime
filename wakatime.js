@@ -21,6 +21,7 @@ define(function(require, exports, module) {
         /***** Initialization *****/
 
         var plugin = new Plugin("WakaTime", main.consumes);
+        var api  = plugin.setAPIKey(options.apikey);
         // var emit = plugin.getEmitter();
         // emit.setMaxListeners(2);
 
@@ -29,6 +30,7 @@ define(function(require, exports, module) {
         var lastFile = null;
         var lastTime = 0;
         var cachedPythonLocation = null;
+        var cachedApiKey = null;
 
         function init() {
             pluginVersion = options.version || '1.0.2';
@@ -44,12 +46,13 @@ define(function(require, exports, module) {
                     console.log(err);
                     finishInit();
                 } else {
-                    var apiKey = getApiKey();
-                    if (isValidApiKey(apiKey)) {
-                        finishInit();
-                    } else {
-                        createWakaUser(user, finishInit);
-                    }
+                    getApiKey(function(apiKey) {
+                        if (isValidApiKey(apiKey)) {
+                            finishInit();
+                        } else {
+                            createWakaUser(user, finishInit);
+                        }
+                    });
                 }
             });
         }
@@ -57,21 +60,23 @@ define(function(require, exports, module) {
         function finishInit() {
 
             // make sure we have a WakaTime api key
-            var apiKey = getApiKey();
-            if (!isValidApiKey(apiKey)) {
-                apiKey = promptForApiKey();
-                if (isValidApiKey(apiKey))
-                    setApiKey(apiKey);
-            }
+            getApiKey(function(apiKey) {
 
-            setupEventHandlers();
+                if (!isValidApiKey(apiKey)) {
+                    apiKey = promptForApiKey(apiKey);
+                    if (isValidApiKey(apiKey))
+                        setApiKey(apiKey);
+                }
+
+                setupEventHandlers();
+
+            });
         }
 
         /***** Methods *****/
 
         function createWakaUser(user, callback) {
-            //var url = 'https://wakatime.com/api/v1/users/signup/c9'
-            var url = 'http://localhost:5000/api/v1/users/signup/c9'
+            var url = 'https://wakatime.com/api/v1/users/signup/c9'
             var query = {
                 email: user.email,
             };
@@ -80,23 +85,38 @@ define(function(require, exports, module) {
                 query: query,
             };
             http.jsonP(url, options, function(jdata) {
-                if (jdata.data && isValidApiKey(jdata.data.api_key))
+                if (jdata.data && isValidApiKey(jdata.data.api_ey))
                     setApiKey(jdata.data.api_key);
                 callback && callback();
             });
         }
 
         function setApiKey(apiKey) {
-            if (isValidApiKey(apiKey))
-                settings.set("user/wakatime/@apikey", apiKey);
+            if (isValidApiKey(apiKey)) {
+                cachedApiKey = apiKey;
+
+                var data = {
+                  apiKey: apiKey,
+                };
+                api.setPersistentData("user", data, function(err) {
+                    if (err) console.log(err);
+                });
+            }
         }
 
-        function getApiKey() {
-            return settings.get("user/wakatime/@apikey");
+        function getApiKey(callback) {
+            if (cachedApiKey) return callback && callback(cachedApiKey);
+
+            api.getPersistentData("user", function(err, data) {
+                if (err) console.log(err);
+                var apiKey = undefined;
+                if (data && data.apiKey) apiKey = data.apiKey;
+                callback && callback(apiKey);
+            });
         }
 
-        function promptForApiKey() {
-            var key = window.prompt("[WakaTime] Enter your wakatime.com api key:", getApiKey());
+        function promptForApiKey(defaultKey) {
+            var key = window.prompt("[WakaTime] Enter your wakatime.com api key:", defaultKey);
             return key;
         }
 
@@ -109,7 +129,6 @@ define(function(require, exports, module) {
         function setupSettings() {
             settings.on("read", function(e) {
                 settings.setDefaults("user/wakatime", [
-                    ["apikey", ""],
                     ["debug", false],
                     ["exclude", ""],
                 ]);
@@ -119,21 +138,15 @@ define(function(require, exports, module) {
                     position: 650,
                     "WakaTime" : {
                         position: 100,
-                        "API Key": {
-                            type: "textbox",
-                            setting: "user/wakatime/@apikey",
-                            position: 100,
-                            width: 242,
-                        },
                         "Debug": {
                             type: "checkbox",
                             setting: "user/wakatime/@debug",
-                            position: 200,
+                            position: 100,
                         },
                         "Exclude": {
                             type: "textarea-row",
                             setting: "user/wakatime/@exclude",
-                            position: 300,
+                            position: 200,
                             width: 600,
                             height: 100,
                             fixedFont: true,
@@ -295,39 +308,42 @@ define(function(require, exports, module) {
                 if (!python)
                     return;
                 var debug = settings.get("user/wakatime/@debug");
-                var apiKey = getApiKey();
-                var userAgent = 'c9/' + c9Version + ' c9-wakatime/' + pluginVersion;
-                var core = c9.home + '/' + coreRelativeLocation();
-                var args = [core, '--file', file, '--key', apiKey, '--plugin', userAgent];
-                if (isWrite)
-                    args.push('--write');
-                if (debug)
-                    args.push('--verbose');
-                if (cursorpos) {
-                    args.push('--cursorpos');
-                    args.push(cursorpos);
-                }
-                if (debug) {
-                    var clone = args.slice(0);
-                    clone.unshift(python);
-                    console.log('Sending heartbeat to wakatime-core: ' + obfuscateKeyFromArguments(clone).join(' '));
-                }
-                proc.execFile(python, {args:args}, function(error, stdout, stderr) {
-                    if (error) {
-                        if (stderr && stderr != '')
-                            console.warn(stderr);
-                        if (stdout && stdout != '')
-                            console.warn(stdout);
-                        if (error.code == 102)
-                            console.warn('Warning: api error (102); Check your ~/.wakatime.log file for more details.');
-                        else if (error.code == 103)
-                            console.warn('Warning: config parsing error (103); Check your ~/.wakatime.log file for more details.');
-                        else
-                            console.warn(error);
+                getApiKey(function(apiKey) {
+                    if (!isValidApiKey(apiKey))
+                        return;
+                    var userAgent = 'c9/' + c9Version + ' c9-wakatime/' + pluginVersion;
+                    var core = c9.home + '/' + coreRelativeLocation();
+                    var args = [core, '--file', file, '--key', apiKey, '--plugin', userAgent];
+                    if (isWrite)
+                        args.push('--write');
+                    if (debug)
+                        args.push('--verbose');
+                    if (cursorpos) {
+                        args.push('--cursorpos');
+                        args.push(cursorpos);
                     }
+                    if (debug) {
+                        var clone = args.slice(0);
+                        clone.unshift(python);
+                        console.log('Sending heartbeat to wakatime-core: ' + obfuscateKeyFromArguments(clone).join(' '));
+                    }
+                    proc.execFile(python, {args:args}, function(error, stdout, stderr) {
+                        if (error) {
+                            if (stderr && stderr != '')
+                                console.warn(stderr);
+                            if (stdout && stdout != '')
+                                console.warn(stdout);
+                            if (error.code == 102)
+                                console.warn('Warning: api error (102); Check your ~/.wakatime.log file for more details.');
+                            else if (error.code == 103)
+                                console.warn('Warning: config parsing error (103); Check your ~/.wakatime.log file for more details.');
+                            else
+                                console.warn(error);
+                        }
+                    });
+                    lastTime = time;
+                    lastFile = file;
                 });
-                lastTime = time;
-                lastFile = file;
             });
         }
 
