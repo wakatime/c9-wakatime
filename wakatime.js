@@ -265,8 +265,8 @@ define(function(require, exports, module) {
 
         }
 
-        function coreRelativeLocation() {
-            return ".c9/lib/wakatime-core/wakatime-master/wakatime/cli.py";
+        function coreLocation() {
+            return c9.home + "/.c9/lib/wakatime/wakatime/cli.py";
         }
 
         function obfuscateKey(key) {
@@ -315,7 +315,7 @@ define(function(require, exports, module) {
                     if (!isValidApiKey(apiKey))
                         return;
                     var userAgent = 'c9/' + c9Version + ' c9-wakatime/' + pluginVersion;
-                    var core = c9.home + '/' + coreRelativeLocation();
+                    var core = coreLocation();
                     var args = [core, '--file', file, '--key', apiKey, '--plugin', userAgent];
                     if (isWrite)
                         args.push('--write');
@@ -328,7 +328,7 @@ define(function(require, exports, module) {
                     if (debug) {
                         var clone = args.slice(0);
                         clone.unshift(python);
-                        console.log('Sending heartbeat to wakatime-core: ' + obfuscateKeyFromArguments(clone).join(' '));
+                        console.log('Sending heartbeat: ' + obfuscateKeyFromArguments(clone).join(' '));
                     }
                     proc.execFile(python, {args:args}, function(error, stdout, stderr) {
                         if (error) {
