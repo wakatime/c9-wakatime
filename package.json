@@ -15,7 +15,7 @@
   },
   "plugins": {
     "wakatime": {
-      "packagePath": "plugins/wakatime/wakatime"
+      "packagePath": "plugins/wakatime"
     }
   },
   "engines": {
