@@ -5,8 +5,8 @@ define(function(require, exports, module) {
     session.install({
       "tar.gz": {
         "url": "https://github.com/wakatime/wakatime/archive/master.tar.gz",
-        "target": "~/.c9/lib/wakatime-core",
-        "dir": "wakatime-core",
+        "target": "~/.c9/lib/wakatime",
+        "dir": "wakatime-master",
       }
     });
 
