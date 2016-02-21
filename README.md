@@ -7,7 +7,13 @@ Metrics, insights, and time tracking automatically generated from your programmi
 Installation
 ------------
 
-Setup the [c9sdk](https://cloud9-sdk.readme.io/docs/running-the-sdk) then run `./bin/c9 install wakatime`
+1. Open a Terminal from Window -> New Terminal.
+
+2. Run `c9 install wakatime`
+
+3. Use Cloud9 like you normally do and your time will automatically be tracked for you.
+
+4. Visit https://wakatime.com to see your logged time.
 
 
 Screen Shots
