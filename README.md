@@ -8,6 +8,7 @@ Installation
 ------------
 
 1. Open a Terminal from Window -> New Terminal.
+![Open Terminal](https://wakatime.com/static/img/ScreenShots/c9-open-terminal.png)
 
 2. Run `c9 install wakatime`
 
