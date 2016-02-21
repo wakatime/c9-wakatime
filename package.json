@@ -1,7 +1,7 @@
 {
   "name": "wakatime",
   "description": "Metrics, insights, and time tracking automatically generated from your programming activity.",
-  "version": "1.0.7",
+  "version": "2.0.0",
   "author": "WakaTime",
   "contributors": [
     {
@@ -14,9 +14,7 @@
     "url": "http://github.com/wakatime/c9-wakatime.git"
   },
   "plugins": {
-    "wakatime": {
-      "packagePath": "plugins/wakatime"
-    }
+    "wakatime": {}
   },
   "engines": {
     "c9": ">=3.0.0"
