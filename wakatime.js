@@ -163,24 +163,24 @@ define(function(require, exports, module) {
         function setupEventHandlers() {
 
             save.on("afterSave", function(e) {
-                handleActivity(e.path, null, true);
+                handleActivity(e.path, true);
             });
 
             tabManager.on("focus", function(e) {
                 handleActivity(e.tab.path);
             });
 
-            ace.on("create", function(e) {
+            ace.on("create", function(createEvent) {
                 if (!lastFile)
-                    lastFile = e.editor.activeDocument.tab.path;
-                e.editor.ace.on("change", function(e) {
-                    getCursorPosition(lastFile, false, e.start.row, e.start.column, handleActivity);
+                    lastFile = createEvent.editor.activeDocument.tab.path;
+                createEvent.editor.ace.on("change", function(e) {
+                  handleActivity(lastFile, false, e.start.row, e.start.column);
                 });
             }, plugin);
         }
 
-        function getCursorPosition(file, isWrite, row, col, callback) {
-            if (file) {
+        function getCursorPosition(file, row, col, callback) {
+            if (file && row !== undefined && col !== undefined) {
                 var re = new RegExp('^' + c9.home);
                 var relativeFile = file.replace(re, '~');
                 fs.readFile(relativeFile, function (err, data) {
@@ -197,8 +197,11 @@ define(function(require, exports, module) {
                         }
                     }
                     if (callback)
-                      callback(file, cursorpos, isWrite);
+                      callback(cursorpos);
                 });
+            } else {
+              if (callback)
+                callback(null);
             }
         }
 
@@ -292,7 +295,7 @@ define(function(require, exports, module) {
             return newCmds;
         }
 
-        function handleActivity(file, cursorpos, isWrite) {
+        function handleActivity(file, isWrite, row, column) {
             if (!file)
                 return;
             if (file.indexOf('~') == 0) {
@@ -302,7 +305,10 @@ define(function(require, exports, module) {
             if (isWrite || enoughTimePassed(time) || lastFile != file) {
                 if (fileIsIgnored(file))
                     return;
-                sendHeartbeat(file, time, cursorpos, isWrite);
+
+                getCursorPosition(lastFile, row, column, function(cursorpos) {
+                  sendHeartbeat(file, time, cursorpos, isWrite);
+                });
             }
         }
 
