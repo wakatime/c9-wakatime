@@ -301,6 +301,11 @@ define(function(require, exports, module) {
             if (file.indexOf('~') == 0) {
                 file = c9.home + file.substring(1);
             }
+            else{
+                if (file.indexOf(c9.home, 0) != 0){
+                    file = require("path").join(c9.workspaceDir, file);
+                }
+            }
             var time = Date.now();
             if (isWrite || enoughTimePassed(time) || lastFile != file) {
                 if (fileIsIgnored(file))
