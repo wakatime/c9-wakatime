@@ -1,6 +1,6 @@
 define(function(require, exports, module) {
     main.consumes = [
-        "Plugin", "c9", "tabManager", "preferences", "settings", "save", "ace", "fs", "proc", "info", "http"
+        "Plugin", "c9", "tabManager", "preferences", "settings", "save", "ace", "proc", "info", "http"
     ];
     main.provides = ["wakatime"];
     return main;
@@ -13,10 +13,11 @@ define(function(require, exports, module) {
         var tabManager = imports.tabManager;
         var ace = imports.ace;
         var save = imports.save;
-        var fs = imports.fs;
         var proc = imports.proc;
         var info = imports.info;
         var http = imports.http;
+
+        var path = require('path');
 
         /***** Initialization *****/
 
@@ -28,6 +29,7 @@ define(function(require, exports, module) {
         var pluginVersion = null;
         var c9Version = null;
         var lastFile = null;
+        var lastWrite = null;
         var lastTime = 0;
         var cachedPythonLocation = null;
         var cachedApiKey = null;
@@ -35,8 +37,8 @@ define(function(require, exports, module) {
         function init() {
             pluginVersion = options.version || '2.0.2';
             c9Version = c9.version.split(' ')[0];
-            if (settings.get("user/wakatime/@debug"))
-                console.log("Initializing WakaTime v" + pluginVersion);
+            if (settings.get('user/wakatime/@debug'))
+                console.log('Initializing WakaTime v' + pluginVersion);
 
             setupSettings();
 
@@ -162,47 +164,19 @@ define(function(require, exports, module) {
 
         function setupEventHandlers() {
 
-            save.on("afterSave", function(e) {
-                handleActivity(e.path, true);
+            save.on('afterSave', function(e) {
+                handleActivity(true);
             });
 
-            tabManager.on("focus", function(e) {
-                handleActivity(e.tab.path);
+            tabManager.on('focus', function(e) {
+                handleActivity();
             });
 
-            ace.on("create", function(createEvent) {
-                if (!lastFile)
-                    lastFile = createEvent.editor.activeDocument.tab.path;
-                createEvent.editor.ace.on("change", function(e) {
-                  handleActivity(lastFile, false, e.start.row, e.start.column);
+            ace.on('create', function(createEvent) {
+                createEvent.editor.ace.on('input', function(e) {
+                    handleActivity();
                 });
             }, plugin);
-        }
-
-        function getCursorPosition(file, row, col, callback) {
-            if (file && row !== undefined && col !== undefined) {
-                var re = new RegExp('^' + c9.home);
-                var relativeFile = file.replace(re, '~');
-                fs.readFile(relativeFile, function (err, data) {
-                    var cursorpos = null;
-                    if (!err) {
-                        cursorpos = 0;
-                        var lines = data.split(/\n/);
-                        for (var i=0; i<lines.length; i++) {
-                            if (i == row) {
-                                cursorpos += col;
-                                break;
-                            }
-                            cursorpos += lines[i].length + 1;
-                        }
-                    }
-                    if (callback)
-                      callback(cursorpos);
-                });
-            } else {
-              if (callback)
-                callback(null);
-            }
         }
 
         function enoughTimePassed(time) {
@@ -210,13 +184,13 @@ define(function(require, exports, module) {
         }
 
         function fileIsIgnored(file) {
-            var patterns = settings.get("user/wakatime/@exclude").split(/\n/);
+            var patterns = settings.get('user/wakatime/@exclude').split(/\n/);
             var ignore = false;
             for (var i=0; i<patterns.length; i++) {
                 if (patterns[i].trim()) {
-                    var re = new RegExp(patterns[i], "gi");
+                    var re = new RegExp(patterns[i], 'gi');
                     if (re.test(file)) {
-                        console.log("matched " + patterns[i] + " on " + file);
+                        // console.log("matched " + patterns[i] + " on " + file);
                         ignore = true;
                         break;
                     }
@@ -235,14 +209,14 @@ define(function(require, exports, module) {
 
             if (locations === undefined) {
                 locations = [
-                    "pythonw",
-                    "python",
-                    "/usr/local/bin/python",
-                    "/usr/bin/python",
+                    'pythonw',
+                    'python',
+                    '/usr/local/bin/python',
+                    '/usr/bin/python',
                 ];
                 for (var i=26; i<40; i++) {
-                    locations.push('\\python' + i + '\\pythonw');
-                    locations.push('\\Python' + i + '\\pythonw');
+                    locations.push(path.join('python' + i, 'pythonw'));
+                    locations.push(path.join('Python' + i, 'pythonw'));
                 }
             }
 
@@ -269,15 +243,15 @@ define(function(require, exports, module) {
         }
 
         function coreLocation() {
-            return c9.home + "/.c9/lib/wakatime/wakatime/cli.py";
+            return path.join(c9.home, '.c9/lib/wakatime/wakatime/cli.py');
         }
 
         function obfuscateKey(key) {
-            var newKey = "";
+            var newKey = '';
             if (key) {
                 newKey = key;
                 if (key.length > 4)
-                    newKey = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX" + key.substring(key.length - 4);
+                    newKey = 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX' + key.substring(key.length - 4);
             }
             return newKey;
         }
@@ -295,48 +269,73 @@ define(function(require, exports, module) {
             return newCmds;
         }
 
-        function handleActivity(file, isWrite, row, column) {
+        function handleActivity(isWrite) {
+            var tab = tabManager.focussedTab;
+            if (!tab) return;
+
+            var file = tab.path;
             if (!file)
                 return;
+
             if (file.indexOf('~') == 0) {
-                file = c9.home + file.substring(1);
+                file = path.join(c9.home, file.substring(1));
+            } else if (file.indexOf(c9.home, 0) != 0) {
+                file = path.join(c9.workspaceDir, file);
             }
-            else{
-                if (file.indexOf(c9.home, 0) != 0){
-                    file = require("path").join(c9.workspaceDir, file);
-                }
-            }
+
             var time = Date.now();
-            if (isWrite || enoughTimePassed(time) || lastFile != file) {
+            if (isWrite && lastWrite != isWrite || enoughTimePassed(time) || lastFile != file) {
                 if (fileIsIgnored(file))
                     return;
 
-                getCursorPosition(lastFile, row, column, function(cursorpos) {
-                  sendHeartbeat(file, time, cursorpos, isWrite);
-                });
+                var cursorpos = getCursorPosition(tab);
+                sendHeartbeat(file, time, isWrite, cursorpos);
             }
         }
 
-        function sendHeartbeat(file, time, cursorpos, isWrite) {
+        function getCursorPosition(tab) {
+            try {
+                if (!tab) return null;
+                var aceSession = tab.document.getSession().session;
+                if (!aceSession) return null;
+                var aceDoc = aceSession.doc;
+                if (!aceDoc) return null;
+                var selection = aceSession.getSelection();
+                if (!selection) return null;
+                var anchor = selection.anchor;
+                if (!anchor) return null;
+                var row = anchor.row;
+                var col = anchor.column;
+                var cursorpos = aceDoc.positionToIndex({ row: row, column: col });
+                if (cursorpos !== undefined && cursorpos != null) return cursorpos;
+                return null;
+            } catch(err) {
+                console.log(err);
+                cursorpos = null;
+            }
+        }
+
+        function sendHeartbeat(file, time, isWrite, cursorpos) {
             pythonLocation(function(python) {
                 if (!python)
                     return;
                 var debug = settings.get("user/wakatime/@debug");
                 getApiKey(function(apiKey) {
-                    if (!isValidApiKey(apiKey))
-                        return;
-                    var userAgent = 'c9/' + c9Version + ' c9-wakatime/' + pluginVersion;
                     var core = coreLocation();
-                    var args = [core, '--file', file, '--key', apiKey, '--plugin', userAgent];
+                    var userAgent = 'c9/' + c9Version + ' c9-wakatime/' + pluginVersion;
+                    var args = [core, '--file', file, '--plugin', userAgent];
                     if (isWrite)
                         args.push('--write');
-                    if (debug)
-                        args.push('--verbose');
-                    if (cursorpos) {
+                    if (isValidApiKey(apiKey)) {
+                        args.push('--key');
+                        args.push(apiKey);
+                    }
+                    if (cursorpos != null) {
                         args.push('--cursorpos');
                         args.push(cursorpos);
                     }
                     if (debug) {
+                        args.push('--verbose');
                         var clone = args.slice(0);
                         clone.unshift(python);
                         console.log('Sending heartbeat: ' + obfuscateKeyFromArguments(clone).join(' '));
@@ -347,18 +346,44 @@ define(function(require, exports, module) {
                                 console.warn(stderr);
                             if (stdout && stdout != '')
                                 console.warn(stdout);
-                            if (error.code == 102)
-                                console.warn('Warning: api error (102); Check your ~/.wakatime.log file for more details.');
-                            else if (error.code == 103)
-                                console.warn('Warning: config parsing error (103); Check your ~/.wakatime.log file for more details.');
-                            else
-                                console.warn(error);
+
+                            var msg = error.message;
+                            var status = 'Error'
+                            var title = 'Unknown Error (' + error.code + '); Check your Dev Console and ~/.wakatime.log for more info.'
+                            if (error.code == 102) {
+                                msg = null;
+                                status = null;
+                                title = 'WakaTime Offline, coding activity will sync when online.';
+                            } else if (error.code == 103) {
+                                msg = 'An error occured while parsing ~/.wakatime.cfg. Check ~/.wakatime.log for more info.';
+                                status = 'Error';
+                                title = msg;
+                            } else if (error.code == 104) {
+                                msg = 'Invalid API Key. Make sure your API Key is correct!';
+                                status = 'Error';
+                                title = msg;
+                            }
+
+                            console.warn(msg);
+                            setStatusBarText(status);
+                            setStatusBarTitle(title);
                         }
                     });
                     lastTime = time;
                     lastFile = file;
+                    lastWrite = !!isWrite;
                 });
             });
+        }
+
+        function setStatusBarText(text) {
+            // TODO: update status bar text
+            return;
+        }
+
+        function setStatusBarTitle(text) {
+            // TODO: update status bar onhover title
+            return;
         }
 
         /***** Lifecycle *****/
