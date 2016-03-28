@@ -46,21 +46,25 @@ define(function(require, exports, module) {
                 setupSettings();
             });
 
-            // get user's c9 email address
-            info.getUser(function(err, user) {
-                if (err || !user || !user.email) {
-                    console.log(err);
-                    finishInit();
-                } else {
-                    getApiKey(function(apiKey) {
-                        if (isValidApiKey(apiKey)) {
-                            finishInit();
-                        } else {
-                            createWakaUser(user, finishInit);
-                        }
-                    });
-                }
-            });
+            if (false) {
+                // get user's c9 email address
+                info.getUser(function(err, user) {
+                    if (err || !user || !user.email) {
+                        console.log(err);
+                        finishInit();
+                    } else {
+                        getApiKey(function(apiKey) {
+                            if (isValidApiKey(apiKey)) {
+                                finishInit();
+                            } else {
+                                createWakaUser(user, finishInit);
+                            }
+                        });
+                    }
+                });
+            } else {
+                finishInit();
+            }
         }
 
         function finishInit() {
