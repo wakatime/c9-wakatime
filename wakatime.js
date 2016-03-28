@@ -35,7 +35,7 @@ define(function(require, exports, module) {
         var cachedApiKey = null;
 
         function init() {
-            pluginVersion = options.version || '2.0.3';
+            pluginVersion = options.version || '3.0.0';
             c9Version = c9.version.split(' ')[0];
             if (settings.get('user/wakatime/@debug'))
                 console.log('Initializing WakaTime v' + pluginVersion);
@@ -46,25 +46,21 @@ define(function(require, exports, module) {
                 setupSettings();
             });
 
-            if (false) {
-                // get user's c9 email address
-                info.getUser(function(err, user) {
-                    if (err || !user || !user.email) {
-                        console.log(err);
-                        finishInit();
-                    } else {
-                        getApiKey(function(apiKey) {
-                            if (isValidApiKey(apiKey)) {
-                                finishInit();
-                            } else {
-                                createWakaUser(user, finishInit);
-                            }
-                        });
-                    }
-                });
-            } else {
-                finishInit();
-            }
+            // get user's c9 email address
+            info.getUser(function(err, user) {
+                if (err || !user || !user.email) {
+                    console.log(err);
+                    finishInit();
+                } else {
+                    getApiKey(function(apiKey) {
+                        if (isValidApiKey(apiKey)) {
+                            finishInit();
+                        } else {
+                            createWakaUser(user, finishInit);
+                        }
+                    });
+                }
+            });
         }
 
         function finishInit() {

@@ -3,6 +3,13 @@ History
 -------
 
 
+3.0.0 (2016-03-29)
+++++++++++++++++++
+
+- Stop auto-creating new users based on c9 email.
+- Allow configuring api key from user preferences.
+
+
 2.0.3 (2016-03-07)
 ++++++++++++++++++
 
