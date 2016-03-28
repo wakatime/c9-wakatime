@@ -40,7 +40,11 @@ define(function(require, exports, module) {
             if (settings.get('user/wakatime/@debug'))
                 console.log('Initializing WakaTime v' + pluginVersion);
 
-            setupSettings();
+            getApiKey(function(apiKey) {
+                if (isValidApiKey(apiKey))
+                    settings.set("user/wakatime/@apikey", apiKey);
+                setupSettings();
+            });
 
             // get user's c9 email address
             info.getUser(function(err, user) {
@@ -134,24 +138,34 @@ define(function(require, exports, module) {
         function setupSettings() {
             settings.on("read", function(e) {
                 settings.setDefaults("user/wakatime", [
+                    ["apikey", ""],
                     ["debug", false],
                     ["exclude", ""],
                 ]);
             });
+            settings.on("user/wakatime/@apikey", function(value) {
+                setApiKey(value);
+            }, plugin);
             prefs.add({
                 "WakaTime" : {
                     position: 650,
                     "WakaTime" : {
                         position: 100,
+                        "API Key": {
+                            type: "textbox",
+                            setting: "user/wakatime/@apikey",
+                            position: 100,
+                            width: 242,
+                        },
                         "Debug": {
                             type: "checkbox",
                             setting: "user/wakatime/@debug",
-                            position: 100,
+                            position: 200,
                         },
                         "Exclude": {
                             type: "textarea-row",
                             setting: "user/wakatime/@exclude",
-                            position: 200,
+                            position: 300,
                             width: 600,
                             height: 100,
                             fixedFont: true,
