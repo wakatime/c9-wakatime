@@ -40,7 +40,7 @@ define(function(require, exports, module) {
       if (settings.get('user/wakatime/@debug'))
         console.log('Initializing WakaTime v' + pluginVersion);
 
-      getApiKey(function(apiKey) {
+      getWakaApiKey(function(apiKey) {
         if (isValidApiKey(apiKey))
           settings.set("user/wakatime/@apikey", apiKey);
         setupSettings();
@@ -52,7 +52,7 @@ define(function(require, exports, module) {
           console.log(err);
           finishInit();
         } else {
-          getApiKey(function(apiKey) {
+          getWakaApiKey(function(apiKey) {
             if (isValidApiKey(apiKey)) {
               finishInit();
             } else {
@@ -66,12 +66,12 @@ define(function(require, exports, module) {
     function finishInit() {
 
       // make sure we have a WakaTime api key
-      getApiKey(function(apiKey) {
+      getWakaApiKey(function(apiKey) {
 
         if (!isValidApiKey(apiKey)) {
           apiKey = promptForApiKey(apiKey);
           if (isValidApiKey(apiKey))
-            setApiKey(apiKey);
+            setWakaApiKey(apiKey);
         }
 
         setupEventHandlers();
@@ -95,12 +95,12 @@ define(function(require, exports, module) {
       http.request(url, options, function(err, data, res) {
         if (err) console.log(err);
         if (data && data.data && isValidApiKey(data.data.api_key))
-          setApiKey(data.data.api_key);
+          setWakaApiKey(data.data.api_key);
         callback && callback();
       });
     }
 
-    function setApiKey(apiKey) {
+    function setWakaApiKey(apiKey) {
       if (isValidApiKey(apiKey)) {
         cachedApiKey = apiKey;
 
@@ -113,11 +113,11 @@ define(function(require, exports, module) {
       }
     }
 
-    function getApiKey(callback) {
+    function getWakaApiKey(callback) {
       if (cachedApiKey) return callback && callback(cachedApiKey);
 
       api.getPersistentData("user", function(err, data) {
-        if (err) console.log(err);
+        if (err) console.warn(err);
         var apiKey = undefined;
         if (data && data.apiKey) apiKey = data.apiKey;
         callback && callback(apiKey);
@@ -144,7 +144,7 @@ define(function(require, exports, module) {
         ]);
       });
       settings.on("user/wakatime/@apikey", function(value) {
-          setApiKey(value);
+        setWakaApiKey(value);
       }, plugin);
       prefs.add({
         "WakaTime" : {
@@ -334,7 +334,7 @@ define(function(require, exports, module) {
         if (!python)
           return;
         var debug = settings.get("user/wakatime/@debug");
-        getApiKey(function(apiKey) {
+        getWakaApiKey(function(apiKey) {
           var core = coreLocation();
           var userAgent = 'c9/' + c9Version + ' c9-wakatime/' + pluginVersion;
           var args = [core, '--file', file, '--plugin', userAgent];
