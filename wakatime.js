@@ -41,42 +41,44 @@ define(function(require, exports, module) {
         console.log('Initializing WakaTime v' + pluginVersion);
 
       getWakaApiKey(function(apiKey) {
-        if (isValidApiKey(apiKey))
-          settings.set("user/wakatime/@apikey", apiKey);
-        setupSettings();
-      });
 
-      // get user's c9 email address
-      info.getUser(function(err, user) {
-        if (err || !user || !user.email) {
-          console.log(err);
+        setupSettings(apiKey);
+
+        if (isValidApiKey(apiKey)) {
           finishInit();
         } else {
-          getWakaApiKey(function(apiKey) {
-            if (isValidApiKey(apiKey)) {
+
+          // get user's c9 email address
+          info.getUser(function(err, user) {
+            if (err || !user || !user.email) {
+              console.log(err);
               finishInit();
             } else {
-              createWakaUser(user, finishInit);
+              createWakaUser(user, function() {
+
+                getWakaApiKey(function(apiKey) {
+
+                  if (!isValidApiKey(apiKey)) {
+                    apiKey = promptForApiKey(apiKey);
+                    if (isValidApiKey(apiKey))
+                      setWakaApiKey(apiKey);
+                  }
+
+                  finishInit();
+
+                });
+
+              });
             }
           });
         }
+
       });
+
     }
 
     function finishInit() {
-
-      // make sure we have a WakaTime api key
-      getWakaApiKey(function(apiKey) {
-
-        if (!isValidApiKey(apiKey)) {
-          apiKey = promptForApiKey(apiKey);
-          if (isValidApiKey(apiKey))
-            setWakaApiKey(apiKey);
-        }
-
-        setupEventHandlers();
-
-      });
+      setupEventHandlers();
     }
 
     /***** Methods *****/
@@ -140,7 +142,7 @@ define(function(require, exports, module) {
       return re.test(key);
     }
 
-    function setupSettings() {
+    function setupSettings(defaultApiKey) {
       settings.on("read", function(e) {
         settings.setDefaults("user/wakatime", [
           ["apikey", ""],
@@ -148,6 +150,8 @@ define(function(require, exports, module) {
           ["exclude", ""],
         ]);
       });
+      if (isValidApiKey(defaultApiKey)
+        settings.set("user/wakatime/@apikey", defaultApiKey);
       settings.on("user/wakatime/@apikey", function(value) {
         setWakaApiKey(value, true);
       }, plugin);
