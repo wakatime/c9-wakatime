@@ -37,7 +37,7 @@ define(function(require, exports, module) {
     var cachedApiKey = null;
 
     function init() {
-      pluginVersion = options.version || '3.0.0';
+      pluginVersion = options.version || '3.0.1';
       c9Version = c9.version.split(' ')[0];
       if (settings.get('user/wakatime/@debug'))
         console.log('Initializing WakaTime v' + pluginVersion);

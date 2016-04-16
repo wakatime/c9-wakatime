@@ -3,6 +3,13 @@ History
 -------
 
 
+3.0.1 (2016-04-16)
+++++++++++++++++++
+
+- Prompt user for email before creating new WakaTime account.
+- Store api key in user settings when persistent settings unavailable.
+
+
 3.0.0 (2016-03-29)
 ++++++++++++++++++
 
