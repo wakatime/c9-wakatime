@@ -100,9 +100,12 @@ define(function(require, exports, module) {
       });
     }
 
-    function setWakaApiKey(apiKey) {
+    function setWakaApiKey(apiKey, skipNonPersistent) {
       if (isValidApiKey(apiKey)) {
         cachedApiKey = apiKey;
+
+        if (!skipNonPersistent)
+          settings.set("user/wakatime/@apikey", apiKey);
 
         var data = {
           apiKey: apiKey,
@@ -120,6 +123,8 @@ define(function(require, exports, module) {
         if (err) console.warn(err);
         var apiKey = undefined;
         if (data && data.apiKey) apiKey = data.apiKey;
+        if (!isValidApiKey(apiKey))
+          apiKey = settings.get("user/wakatime/@apikey");
         callback && callback(apiKey);
       });
     }
@@ -144,7 +149,7 @@ define(function(require, exports, module) {
         ]);
       });
       settings.on("user/wakatime/@apikey", function(value) {
-        setWakaApiKey(value);
+        setWakaApiKey(value, true);
       }, plugin);
       prefs.add({
         "WakaTime" : {
