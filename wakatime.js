@@ -38,7 +38,7 @@ define(function(require, exports, module) {
     var cachedApiKey = null;
 
     function init() {
-      pluginVersion = options.version || '3.0.1';
+      pluginVersion = options.version || '3.0.2';
       c9Version = c9.version.split(' ')[0];
       if (settings.get('user/wakatime/@debug'))
         console.log('Initializing WakaTime v' + pluginVersion);
@@ -59,7 +59,7 @@ define(function(require, exports, module) {
           } else {
             defaultEmail = user.email;
           }
-          
+
           var dialog = new Dialog("WakaTime", main.consumes, {
             dark: true,
             name: "wakatime-init-dialog",
@@ -103,7 +103,7 @@ define(function(require, exports, module) {
               }
             }]
           });
-          
+
           var apiKeyTb, emailTb;
           dialog.on("draw", function(e){
             var lbl;
@@ -155,7 +155,7 @@ define(function(require, exports, module) {
             lbl.$ext.innerHTML = "Enter your wakatime.com api key from\
               <a href='https://wakatime.com/settings/account' target='_blank'>https://wakatime.com/settings/account</a>";
           });
-          
+
           dialog.show();
         });
       });

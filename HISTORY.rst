@@ -3,6 +3,12 @@ History
 -------
 
 
+3.0.2 (2016-04-28)
+++++++++++++++++++
+
+- Remove use of depreciated persistent data api.
+
+
 3.0.1 (2016-04-16)
 ++++++++++++++++++
 
