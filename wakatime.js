@@ -1,6 +1,7 @@
 define(function(require, exports, module) {
   main.consumes = [
-    "Plugin", "c9", "tabManager", "preferences", "settings", "save", "ace", "proc", "info", "http", "dialog.confirm", "notification.bubble"
+    "Plugin", "c9", "tabManager", "preferences", "settings", "save", "ace",
+    "proc", "info", "http", "notification.bubble", "Dialog", "ui"
   ];
   main.provides = ["wakatime"];
   return main;
@@ -16,15 +17,15 @@ define(function(require, exports, module) {
     var proc = imports.proc;
     var info = imports.info;
     var http = imports.http;
-    var confirm = imports['dialog.confirm'];
     var bubble = imports['notification.bubble'];
+    var Dialog = imports.Dialog;
+    var ui = imports.ui;
 
     var path = require('path');
 
     /***** Initialization *****/
 
     var plugin = new Plugin("WakaTime", main.consumes);
-    var api  = plugin.setAPIKey(options.apikey);
     // var emit = plugin.getEmitter();
     // emit.setMaxListeners(2);
 
@@ -47,58 +48,117 @@ define(function(require, exports, module) {
         setupSettings(apiKey);
 
         if (isValidApiKey(apiKey)) {
-          finishInit();
-        } else {
+          return finishInit();
+        }
 
-          confirm.show("Do you already have a WakaTime account?",
-            "Do you already have an account at https://wakatime.com?",
-            "",
-            function () {
-
-              var apiKey = promptForApiKey(apiKey);
-              if (isValidApiKey(apiKey)) {
-                setWakaApiKey(apiKey);
-                finishInit();
-                bubble.popup("WakaTime plugin installed and ready!", true);
-              } else {
-                bubble.popup("Error: Invalid WakaTime API Key!", true);
-              }
-
-            }, function() {
-
-              // get user's c9 email address
-              info.getUser(function(err, user) {
-                var defaultEmail = '';
-                if (err || !user || !user.email) {
-                  console.warn(err);
-                } else {
-                  defaultEmail = user.email;
-                }
-
-                var email = window.prompt("[WakaTime] Your email address:", defaultEmail);
-                if (email) {
-                  createWakaUser(user.email, function(err) {
+        // get user's c9 email address
+        info.getUser(function(err, user) {
+          var defaultEmail = '';
+          if (err || !user || !user.email) {
+            console.warn(err);
+          } else {
+            defaultEmail = user.email;
+          }
+          
+          var dialog = new Dialog("WakaTime", main.consumes, {
+            dark: true,
+            name: "wakatime-init-dialog",
+            allowClose: true,
+            title: "Do you already have a WakaTime account?",
+            elements: [{
+              type: "button",
+              id: "ok",
+              caption: "Create account",
+              onclick: function() {
+                if (emailTb.value && !apiKeyTb.value) {
+                  createWakaUser(emailTb.value, function(err) {
                     if (err) {
                       console.warn(err);
                       bubble.popup("Could not create WakaTime account: " + err, true);
                     } else {
                       bubble.popup("WakaTime plugin installed and ready!", true);
                       finishInit();
+                      dialog.hide();
                     }
                   });
                 } else {
                   bubble.popup("Error: WakaTime plugin needs an email address or api key!", true);
                 }
-              });
-
+              }
             }, {
-              yes: 'Yes, I have a WakaTime account',
-              no: 'No',
-            });
-        }
-
+              type: "button",
+              id: "ok",
+              color: "green",
+              caption: "Add api key",
+              onclick: function() {
+                var apiKey = apiKeyTb.value;
+                if (isValidApiKey(apiKey)) {
+                  setWakaApiKey(apiKey);
+                  finishInit();
+                  bubble.popup("WakaTime plugin installed and ready!", true);
+                  dialog.hide();
+                } else {
+                  bubble.popup("Error: Invalid WakaTime API Key!", true);
+                }
+              }
+            }]
+          });
+          
+          var apiKeyTb, emailTb;
+          dialog.on("draw", function(e){
+            var lbl;
+            e.aml.appendChild(new ui.bar({
+              class: "alertMsg",
+              childNodes: [
+                new ui.hsplitbox({
+                  height: 30,
+                  align: "center",
+                  padding: 3,
+                  childNodes: [
+                    new ui.label({
+                      caption: "Email",
+                      width: 70,
+                      margin: "5 0 0 0"
+                    }),
+                    emailTb = new ui.textbox({
+                      skin: "searchbox",
+                      value: defaultEmail
+                    })
+                  ]
+                }),
+                new ui.hbox({
+                  childNodes: [
+                    lbl = new ui.label({
+                      caption: "ApiKey",
+                      margin: "5 0 5 0"
+                    })
+                  ]
+                }),
+                new ui.hsplitbox({
+                  height: 30,
+                  align: "center",
+                  padding: 3,
+                  childNodes: [
+                    new ui.label({
+                      caption: "ApiKey",
+                      width: 70,
+                      margin: "5 0 0 0"
+                    }),
+                    apiKeyTb = new ui.textbox({
+                      skin: "searchbox",
+                      "empty-message": "xxx"
+                    })
+                  ]
+                }),
+              ]
+            }));
+            lbl.$ext.innerHTML = "Enter your wakatime.com api key from\
+              <a href='https://wakatime.com/settings/account' target='_blank'>https://wakatime.com/settings/account</a>";
+          });
+          
+          dialog.show();
+        });
       });
-
     }
 
     function finishInit() {
@@ -108,7 +168,7 @@ define(function(require, exports, module) {
     /***** Methods *****/
 
     function createWakaUser(email, callback) {
-      var url = 'https://wakatime.com/api/v1/users/signup/c9'
+      var url = 'https://wakatime.com/api/v1/users/signup/c9';
       var body = {
         email: email,
       };
@@ -132,32 +192,15 @@ define(function(require, exports, module) {
 
         if (!skipNonPersistent)
           settings.set("user/wakatime/@apikey", apiKey);
-
-        var data = {
-          apiKey: apiKey,
-        };
-        api.setPersistentData("user", data, function(err) {
-          if (err) console.log(err);
-        });
       }
     }
 
     function getWakaApiKey(callback) {
       if (cachedApiKey) return callback && callback(cachedApiKey);
-
-      api.getPersistentData("user", function(err, data) {
-        if (err) console.warn(err);
-        var apiKey = undefined;
-        if (data && data.apiKey) apiKey = data.apiKey;
-        if (!isValidApiKey(apiKey))
-          apiKey = settings.get("user/wakatime/@apikey");
-        callback && callback(apiKey);
-      });
-    }
-
-    function promptForApiKey(defaultKey) {
-      var key = window.prompt("[WakaTime] Enter your wakatime.com api key:", defaultKey);
-      return key;
+      var apiKey = settings.get("user/wakatime/@apikey");
+      if (!isValidApiKey(apiKey))
+        apiKey = settings.get("user/wakatime/@apikey");
+      callback && callback(apiKey);
     }
 
     function isValidApiKey(key) {
@@ -398,8 +441,8 @@ define(function(require, exports, module) {
                 console.warn(stdout);
 
               var msg = error.message;
-              var status = 'Error'
-              var title = 'Unknown Error (' + error.code + '); Check your Dev Console and ~/.wakatime.log for more info.'
+              var status = 'Error';
+              var title = 'Unknown Error (' + error.code + '); Check your Dev Console and ~/.wakatime.log for more info.';
               if (error.code == 102) {
                 msg = null;
                 status = null;
@@ -442,6 +485,13 @@ define(function(require, exports, module) {
       init();
     });
     plugin.on("unload", function() {
+      pluginVersion = null;
+      c9Version = null;
+      lastFile = null;
+      lastWrite = null;
+      lastTime = 0;
+      cachedPythonLocation = null;
+      cachedApiKey = null;
     });
 
     /***** Register and define API *****/
