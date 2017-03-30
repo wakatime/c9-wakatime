@@ -46,16 +46,6 @@ Screen Shots
 ![Project Overview](https://wakatime.com/static/img/ScreenShots/Screen-Shot-2016-03-21.png)
 
 
-Upgrading
----------
-
-1. Open a Terminal from Window -> New Terminal.
-
-2. Run `c9 remove wakatime`
-
-3. Run `c9 install wakatime --force`
-
-
 Troubleshooting
 ---------------
 
