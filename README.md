@@ -37,9 +37,6 @@ require(["plugins/wakatime/wakatime", "plugins/wakatime/install"], function(plug
 6. Use Cloud9 and your coding activity will be displayed on your [WakaTime dashboard](https://wakatime.com).
 
 
-Note: Currently the Cloud9 plugin api is offline, so the wakatime plugin only works when running Cloud9 in Debug Mode.
-
-
 Screen Shots
 ------------
 
