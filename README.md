@@ -10,7 +10,7 @@ Installation
 1. Go to your Cloud9 Preferences and enable all 3 <code>Experimental SDK</code> toggles.
 ![Enable Plugins in Preferences](https://wakatime.com/static/img/ScreenShots/c9-enable-plugins-in-preferences.png)
 
-2. Open your Init Script from Cloud9 -> Open Your Init Script.
+2. Open your Init Script from Cloud9 → Open Your Init Script.
 ![Open Init Script](https://wakatime.com/static/img/ScreenShots/c9-open-init-script.png)
 
 3. Paste this in your Init Script:
