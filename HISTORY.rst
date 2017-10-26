@@ -6,7 +6,7 @@ History
 3.0.2 (2016-04-28)
 ++++++++++++++++++
 
-- Remove use of depreciated persistent data api.
+- Remove use of deprecated persistent data api.
 
 
 3.0.1 (2016-04-16)
@@ -74,7 +74,7 @@ History
 
 - Hard code version until options.version is available.
 
-  
+
 1.0.0 (2016-02-08)
 ++++++++++++++++++
 
